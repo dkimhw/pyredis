@@ -1,28 +1,25 @@
 
-"""
-Simple String "+OK\r\n"
+from pyredis.protocol import extract_frame_from_buffer
+from pyredis.types import (
+    Error,
+    Integer,
+    SimpleString,
+)
+import pytest
 
-Error "-Error message\r\n"
+@pytest.mark.parametrize("buffer, expected", [
+  (b"+Par", (None, 0)),
+  (b"+OK\r\n", (SimpleString("OK"), 5)),
+  (b"+OK\r\n+Next", (SimpleString("OK"), 5))
+])
+def test_read_frame_simple_string_incomplete_frame(buffer, expected):
+  actual = extract_frame_from_buffer(buffer)
+  assert actual == expected
 
-Integers ":100\r\n"
-
-Bulk String "*2\r\n$4\r\necho\r\n$5\r\nhello world\r\n"
-
-Arrays "*2\r\n:1\r\n :2\r\n"
-"""
-# import sys
-# import os
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# from project import resp
-
-# def test_read_frame_simple_string_incomplete_frame():
-#   buffer = b"+Par"
-#   frame, frame_size = resp.extract_frame_from_buffer(buffer)
-#   assert frame == None
-#   assert frame_size == 0
-
-from project import resp
-
-def test_greet():
-    assert resp.greet("Alice") == "Hello, Alice!"
+@pytest.mark.parametrize("buffer, expected", [
+  (b"-Syntax Error\r\n", (Error("Syntax Error"), 15))
+])
+def test_read_frame_error(buffer, expected):
+  actual = extract_frame_from_buffer(buffer)
+  print(actual)
+  assert actual == expected
